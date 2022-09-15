@@ -35,17 +35,43 @@ To download the data that we'll be using today, go to [this GitHub page](https:/
 Once you've finished downloading the data, update the strings below to reflect the correct path to the data on your computer. Here's what it looks like for me (you'll need to update this):
 
 ```{r file-paths}
-fam <- '../data/MareesEtAl_Tutorial/1_QC_GWAS/HapMap_3_r3_1.fam'
-bim <- '../data/MareesEtAl_Tutorial/1_QC_GWAS/HapMap_3_r3_1.bim'
-bed <- '../data/MareesEtAl_Tutorial/1_QC_GWAS/HapMap_3_r3_1.bed'
+# path to directory where plink files are stored
+data.dir <- '/Users/kgrinde/Documents/Teaching/StatGen/data/MareesEtAl_Tutorial/1_QC_GWAS/'
+
+# paste together name of file and path to directory
+fam <- paste0(data.dir, 'HapMap_3_r3_1.fam')
+bim <- paste0(data.dir, 'HapMap_3_r3_1.bim')
+bed <- paste0(data.dir, 'HapMap_3_r3_1.bed')
 ```
+
+> Collectively, the `.fam`, `.bim`, and `.bed` files make up the data that we'll be investigating today.
+> The format of these files is known as *PLINK format*. 
+> It is a common format for efficiently storing large genetic datasets.
+> The `.bed` file contains the genotypes, the `.fam` file contains information on the individuals, and the `.bim` file contains information on the SNPs. 
+>
+> `PLINK` is a popular tool for analyzing genetic data and conducting GWAS. 
+> (Learn more [here](https://www.cog-genomics.org/plink/)).
+> We're going to be conducting our GWAS "by hand" so that we can understand the methods better, but in practice you'll find that many people use `PLINK` or other software programs instead. 
+> Learning to use `PLINK` could make for an interesting final project (especially if one of your learning goals is related to developing your computational skills)!
+
+> The data that we're using today come from the International HapMap project (also known as "HapMap").
+> Read more about HapMap [here](https://www.genome.gov/10001688/international-hapmap-project).
+> The data were processed by a group of researchers in the Netherlands and France for a tutorial they wrote on how to conduct a genome-wide association study.
+> If you're interested, you can read that tutorial [here](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6001694/) and find the corresponding code on [GitHub](https://github.com/MareesAT/GWA_tutorial).
+> The authors decided to focus their tutorial on an "ethnically homogeneous dataset," so although HapMap actually sampled individuals from a variety of populations across the world (see [this list](https://www.sanger.ac.uk/resources/downloads/human/hapmap3.html)), the data that we're using today only includes individuals from Utah with Northern and Western European ancestry (the "CEU" population).
 
 
 Now, we can use the `read.plink` function in the `snpstats` package to read this data into R. (It might take a minute.)
 
-```{r read-data}
+```{r read-data, cache = TRUE}
 hapmap <- read.plink(bed, bim, fam)
 ```
+
+> Whenever you have a time-consuming code chunk in your RMarkdown file (like this one), knitting your document can be a pain. 
+> In these cases, it can be helpful to `cache = TRUE`: once you've knit the file once, all future knits will skip this chunk (provided none of the code in the chunk has changed) and instead just load in the results from the last run. 
+> This can be a huge time-saver! 
+>
+> Read more about caching [here](https://bookdown.org/yihui/rmarkdown-cookbook/cache.html).
 
 
 
@@ -84,8 +110,15 @@ Look at the info we have on each individual:
 head(hapmap$fam)
 ```
 
-We'll ignore this information for now. 
+> The `fam` file keeps track of information about each of the individuals in our study.
+> In this case, we have the following:
+>
+> - information about family relationships (`pedigree`, `father`, `mother`)
+> - binary sex (`1` = male, `2` = female, `0` = unknown)
+> - a binary simulated phenotype (`affected`: `1` = control, `2` = case)
 
+
+We'll ignore this information for now. 
 
 
 ### Explore SNP information
@@ -98,17 +131,19 @@ head(hapmap$map)
 
 What do you think each of these columns are telling us? Discuss with your group.
 
+> Here's what each column represents:
+>
 > - `chromosome`: the chromosome on which the SNP resides
 > - `snp.name`: the name of the SNP (commonly referred to as the "rsID")
 > - `cM`: the abbreviation cM stands for *centiMorgans*; this is a unit of distance that we use when talking about how far about SNPs are from one another along the genome; we refer to this type of distance as "genetic distance"
 > - `position`: this tell us the base pair position of the SNP (e.g., position = 1 would be the very first nucleotide in our DNA sequence); we refer to this as "physical (base pair) distance"
-> - `allele.1`: this is one of the alleles at this SNP
-> - `allele.2`: this is the other allele at this SNP
+> - `allele.1`: this is one of the alleles at this SNP (according to the `PLINK` documentation, this is *usually* the minor allele)
+> - `allele.2`: this is the other allele at this SNP (according to the `PLINK` documentation, this is *usually* the major allele)
 
 
 One useful piece of information about these SNPs that the `map` data frame does not already contain is the minor allele frequency (MAF) --- that is, the frequency of the minor allele in this dataset. Thankfully, the `snpstats` package provides some helpful code for quickly calculating the MAF for each SNP in the dataset:
 
-```{r calculate-MAF}
+```{r calculate-MAF, cache = TRUE}
 maf <- col.summary(hapmap$genotypes)$MAF
 head(maf)
 ```
@@ -170,8 +205,8 @@ We can learn more about this SNP by searching the `dbSNP` database: https://www.
 > There is a lot of information about this SNP on dbSNP. A few things that stood out to me: 
 >
 > - This SNP is located on chromosome 1.
-> - It is affiliated with two genes: *PTPN22* and *AP4B1-AS1*
-> - In most populations, the G allele is much more common (frequency > 90%) than the A allele. This matches what we see in our data.
+> - It is affiliated with (located in/near) two genes: *PTPN22* and *AP4B1-AS1*
+> - Although there is some variation in allele frequencies across populations, in all of them the G allele is much more common (frequency > 90%) than the A allele. This matches what we see in our data.
 > - It has been implicated as a potential risk factor for diabetes, rheumatoid arthritis, and other (mostly autoimmune) diseases.
 > - It was mentioned in the Wellcome Trust GWAS paper that we read for Journal Club :)
 
@@ -273,7 +308,7 @@ length(chr1.snps)
 
 Now, we're going to loop through each of the SNPs on chromosome 1, fitting a linear regression model at each SNP. For each model, we'll record the estimates (`betas`), standard errors (`ses`), test statistics (`tstats`) and p-values (`pvals`) for the coefficient of interest (the slope).
 
-```{r run-gwas-chr1}
+```{r run-gwas-chr1, cache = TRUE}
 # set up empty vectors for storing results
 betas <- c()
 ses <- c()
@@ -327,7 +362,7 @@ chr1.results %>%
 
 What do you think? How well can you tell from this plot which SNPs have small p-values?
 
-> YOUR ANSWER HERE
+> Although this seems like a reasonable place to start in terms of plotting results, the result is a mess! It's really hard to see which SNPs have the smallest p-values.
 
 
 One way to improve this visualization is to apply a log transformation to the p-values. When we have lots of numbers squished into a small range (0 to 1, in this case), a log transformation can be a nice way to spread these out. Try plotting the log (base 10) of the p-values for each SNP instead.
@@ -343,7 +378,10 @@ chr1.results %>%
 
 What do you notice now? Are the SNPs with small p-values the ones with small (more negative) values or large (closer to 0) values on the log base 10 scale?
 
-> YOUR ANSWER HERE
+> The log transformation spread out the values so we can start to pick up on which p-values are smaller/larger than the others, now. 
+> Recall that the log of 1 is `r log10(1)` and the log of anything between 0 and 1 will be negative. 
+> For example: log(0.1) = `r log10(0.1)`, log(0.01) = `r log10(0.01)`, and log(0.001) = `r log(0.001)`.
+> So, the SNPs with the smallest p-values in this plot are the ones with smaller (more negative) values.
 
 
 A traditional Manhattan plot uses a negative log transformation instead. Try plotting the $-log_{10}$ p-values now:
@@ -359,19 +397,93 @@ chr1.results %>%
 
 What similarities do you notice between this plot and the Manhattan plots we've seen before? What differences do you notice? Discuss with your table.
 
-> YOUR ANSWER HERE
+> This looks a lot like the Manhattan plots we saw in our first Journal Club article and the plot we've seen a couple of times as the background photo of a slide in the lecture slides.
+> A few differences that I notice: 
+> 
+> - we're only looking at one chromosome 
+> - there is a gap in the middle of the plot (this is most likely where the [centromere](https://en.wikipedia.org/wiki/Centromere#Positions) of chromosome 1 is located; centromeres tend to be difficult to genotype)
+> - there is no indication of which SNPs are significant (either via a horizontal dashed line or different colored points)  
 
 
 ### Analyze all chromosomes
 
 As time allows, try repeating the analysis above, but now looking at the SNPs on other chromosomes as well. *Hint: the main thing you'll need to change is which SNPs you're looping over in your for loop.* 
 
+```{r run-gwas-allchr, cache = TRUE}
+# set up empty vectors for storing results
+betas <- c()
+ses <- c()
+tstats <- c()
+pvals <- c()
+
+# loop through chromosome 1 SNPs
+for(i in 1:ncol(X.clean)){
+  # print out occasional updates telling us what SNP we're analyzing
+  if(i %% 10000 == 0) print(paste('Analyzing SNP', i)) 
+  # fit model
+  mod <- lm(y ~ X.clean[,i])
+  # get coefficient information
+  coefinfo <- tidy(mod)
+  # record estimate, SE, test stat, and p-value
+  betas[i] <- coefinfo$estimate[2]
+  ses[i] <- coefinfo$std.error[2]
+  tstats[i] <- coefinfo$statistic[2]
+  pvals[i] <- coefinfo$p.value[2]
+}
+```
+
+```{r all-results}
+# start with the map info for the chr 1 SNPs
+all.results <- map.clean
+
+# then add betas, SEs, etc.
+all.results <- all.results %>%
+  mutate(Estimate = betas,
+         Std.Error = ses,
+         Test.Statistic = tstats,
+         P.Value = pvals)
+
+# look at results
+head(all.results)
+```
+
+
+```{r manh-attempt1, cache = T}
+all.results %>%
+  mutate(minuslogp = -log10(P.Value),
+         chr = as.factor(chromosome)) %>%
+  ggplot(aes(x = position, y = minuslogp, color = chr)) + 
+  geom_point() + 
+  labs(x = 'position (bp)', y = expression(paste('-log'[10],'(p-value)'))) + 
+  scale_x_continuous(labels = scales::comma)
+```
+
+> Notice that the results from different chromosomes are getting plotted on top of one another! 
+> This is because of the way we keep track of SNP locations: the position (bp) is relative to the chromosome, so the numbers start back over at zero with each new chromosome. 
+> We can use the `group` aesthetic in ggplot to fix this:
+
+
+```{r manh-attempt2, cache = T}
+all.results %>%
+  mutate(minuslogp = -log10(P.Value),
+         chr = as.factor(chromosome)) %>%
+  ggplot(aes(x = chr, y = minuslogp, group = interaction(chr, position), color = chr)) + 
+  geom_point(position = position_dodge(0.8)) + 
+  labs(x = 'chromosome', y = expression(paste('-log'[10],'(p-value)')))
+```
+
 
 ## Speed up the computation
 
 The approach we've taken in this lab to implement marginal regression works, but it's not particularly efficient. Can you think of any ways that we could speed this up? Brainstorm some ideas with your group.
 
-> YOUR ANSWER HERE
+> Here are a few ideas:
+> 
+>- calculate marginal regression coefficient estimates and p-values "by hand" instead of using the `lm` function
+>- use the `Rcpp` package to speed up the for loop
+>- use the `parallel` package to split up the model fitting across different cores of your computer
+>- use a tool specifically designed for this problem (like `PLINK`)
+>- use a computer cluster or cloud computing (instead of trying to run the analysis on your laptop)
 
 Note: this could make an interesting project topic!
 
