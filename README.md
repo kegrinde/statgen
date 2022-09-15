@@ -8,5 +8,5 @@ Statistical methods for analyzing genetic data and understanding the genetic bas
 ## Course Details
 
 - Instructor: [Kelsey Grinde](https://kegrinde.github.io/)
-- Prerequisites: STAT 155: Introduction to Statistical Modeling, MATH/STAT 354: Probability (read course descriptions [here](https://www.macalester.edu/mscs/courses/#courselist-STAT)
+- Prerequisites: STAT 155: Introduction to Statistical Modeling, MATH/STAT 354: Probability (read course descriptions [here](https://www.macalester.edu/mscs/courses/#courselist-STAT))
 - Syllabus: [Fall 2022](https://docs.google.com/presentation/d/1G3GNyENHki7azFbSIEhPAX9cnUFMSuwDwm-NBwGjaNw/edit?usp=sharing)
