@@ -1,0 +1,235 @@
+---
+title: "Exploring the p > n problem"
+subtitle: "STAT 494: Statistical Genetics"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Toy Data Example
+
+To understand the *p > n problem*, we'll start by exploring a toy data example.
+
+
+## One Variant
+
+To simulate a biallelic genetic variant, we can use the `rbinom` function in R. This will **r**andomly generate data from a **binom**ial distribution. If we set $n$ equal to 2 and $p$ equal to our minor allele frequency (MAF), the `rbinom` function will randomly generate counts between 0, 1, and 2 that we can think of as representing the number of minor alleles (0, 1, or 2) carried by each individual at that position.
+
+Run the code below to see this in action:
+
+```{r simulate-one-variant}
+set.seed(494) # for reproducible random number generation
+snp <- rbinom(n = 100, size = 2, p = 0.1) # 100 people, MAF = 0.1
+print(snp)
+```
+
+Try changing $p$ or $n$ to see how the data change with different minor allele frequencies and sample sizes.
+
+
+
+## Many Variants
+
+In a typical GWAS, we're working with a lot more than just a single variant. If we want to quickly generate many variants, it can be useful to first create our own function that will generate one variant (`do_one`) and then use `replicate` to run that function many times, thus generating many variants. In reality, nearby genetic variants are correlated with one another, but we'll ignore that correlation stucture for now and just generate 1000 independent variants.
+
+```{r simulate-many-variants}
+# write a function to simulate one genetic variant
+do_one <- function(n_ppl, MAF){
+  snp <- rbinom(n = n_ppl, size = 2, p = MAF)
+  return(snp)
+}
+
+# replicate 1000 times to create 1000 variants
+set.seed(494)
+snps <- replicate(1000, do_one(n_ppl = 100, MAF = 0.1))
+```
+
+What is the dimension of the `snps` object that we just created? Is this an example of "big" data?
+
+
+
+## Simulated Trait
+
+Our last step in creating our toy dataset is to add a trait. Let's create a *null* trait (that isn't associated with any genetic variants) using the `rnorm` function to randomly sample from a normal distribution: 
+
+```{r simulate-null-trait}
+y <- rnorm(100, mean = 65, sd = 3)
+print(y)
+```
+
+Finally, we can combine together our simulated SNPs and trait into a single data frame: 
+
+```{r combine-into-dataset}
+dat <- as.data.frame(cbind(snps, y))
+```
+
+
+
+## Multiple Linear Regression
+
+Try fitting a multiple linear regression model to investigate the association between our trait, $y$, and our 1000 SNPs. *Hint: instead of typing out the name of each SNP variable (`lm(y ~ V1 + V2 + V3 + ...`), use the shortcut `lm(y ~ .)` to tell R to use all of the predictor variables).*
+
+```{r attempt-multiple-regression}
+# your code here
+```
+
+What happens when you try to fit this multiple linear regression model?
+
+
+
+# Theory of Linear Models
+
+To understand what's happening here, we need to review some concepts from Calculus, Linear Algebra, and STAT 155.
+
+
+## Definition: Method of Least Squares
+
+To estimate the coefficients in a multiple linear regression model, we typically use an approach known as *least squares estimation.*
+
+In fitting a linear regression model, our goal is to find the line that provides the "best" fit to our data. More specifically, we hope to find the values of the intercept $\beta_0$ and slopes $\beta_1, \beta_2, \dots$ that **minimize** the sum of **squared** residuals:
+
+$$\sum_{i=1}^n r_i^2 = \sum_{i=1}^n (y_i - \hat{y}_i)^2 = \sum_{i=1}^n (y_i - [\beta_0 + \beta_1 x_{1i} + \beta_2 x_{2i} + \dots])^2$$
+
+In other words, we're trying to find the coefficient values that minimize the sum of squares of the vertical distances from the observed data points $(\mathbf{x}_i, y_i)$ to the fitted values $(\mathbf{x}_i, \hat{y}_i)$.
+
+Take a look at the [Stat 155 Notes](https://bcheggeseth.github.io/Stat155Notes/least-squares.html) if you need/want to review this concept.
+
+
+
+## Useful Techniques: Minimizing Functions
+
+In order to find the least squares estimates for the intercept and slope(s) of our linear regression model, we need to *minimize* a function---the sum of squared residuals. To do this, we can use techniques from multivariate calculus! 
+
+Remember from calculus that if we want to find the value of $x$ that minimizes the function $f(x)$, then we need to:
+
+1. take the derivative $f'(x) = \frac{d}{dx} f(x)$
+2. set the derivative equal to zero and solve for $x$
+3. (technically, we should then also find the second derivative $f''(x)$, evaluate at the solution to step #2, and check if it's positive in order to confirm we have a minimum)
+
+
+## Example: Simple Linear Regression
+
+To find the least squares estimates $\hat\beta_0, \hat\beta_1$ for a simple linear regression model (with one predictor variable) $$E[y \mid x] = \beta_0 + \beta_1 x,$$ start by finding the partial derivatives $\frac{\partial}{\partial\beta_0}$ and $\frac{\partial}{\partial\beta_1}$ of the sum of squared residuals:
+
+$$
+\begin{aligned}
+\frac{\partial}{\partial\beta_0} \sum_{i=1}^n (y_i - [\beta_0 + \beta_1 x_i])^2 
+&= \sum_{i=1}^n 2(y_i - [\beta_0 + \beta_1 x_i])(-1) \\ 
+& = \sum_{i=1}^n -2y_i + \sum_{i=1}^n 2\beta_0 + \sum_{i=1}^n 2\beta_1 x_i \\
+&= -2 n \bar{y} + 2n \beta_0 + 2 \beta_1 n \bar{x}, \text{ where } \bar{y} = \frac{1}{n} \sum_{i=1}^n y_i \text{ and } \bar{x} = \sum_{i=1}^n x_i   \\ 
+&= 2n(\beta_0 + \beta_1 \bar{x} - \bar{y})\\
+\end{aligned}
+$$
+
+Now you try: find the partial derivative with respect to $\beta_1$.
+
+$$
+\begin{aligned}
+\frac{\partial}{\partial\beta_1} \sum_{i=1}^n (y_i - [\beta_0 + \beta_1 x_i])^2 
+&= \dots \\
+\end{aligned}
+$$
+
+
+Then, set both of these partial derivatives equal to zero and solve for $\beta_0, \beta_1$: 
+
+$$
+\begin{aligned}
+...
+\end{aligned}
+$$
+
+Check your answer: if you did everything correctly, your estimates should match the equations in the [Stat 155 Notes](https://bcheggeseth.github.io/Stat155Notes/least-squares.html).
+
+
+
+## Matrix Version of Least Squares
+
+Deriving the least squares and maximum likelihood estimates for $\beta_0$ and $\beta_1$ was perhaps a bit tedious, but do-able, for a simple linear regression model with one explanatory variable. Things get more difficult when we consider multiple linear regression models with muany explanatory variables:
+
+$$E[y | x_1, x_2, ..., x_p] = \beta_0 + \beta_1 x_1 + \beta_2 x_2 + \dots \beta_p x_p.$$
+
+When we have many explanatory variables, it's often useful to formulate our linear regression model using vectors and matrices. 
+
+Consider the vector of outcomes $\mathbf{y}$
+
+$$\mathbf{y} = \begin{pmatrix} y_1 \\ y_2 \\ \vdots \\ y_n \end{pmatrix},$$
+
+the vector of covariates $\boldsymbol\beta$
+
+$$\boldsymbol\beta = \begin{pmatrix} \beta_0 \\ \beta_1 \\ \vdots \\ \beta_p \end{pmatrix},$$
+
+and the matrix of covariates (sometimes referred to as the "design matrix") $\mathbf{X}$
+
+$$\mathbf{X} = \begin{pmatrix} 1 & x_{11} & \cdots & x_{p1} \\ 1 & x_{12} & \cdots & x_{p2} \\ \vdots & \vdots & \ddots & \vdots \\ 1 & x_{1n} & \cdots & x_{pn} \end{pmatrix}.$$
+
+Then, we can write our linear regression model as 
+
+$$E[\mathbf{y} \mid \mathbf{X}] = \boldsymbol\beta \mathbf{X}$$ 
+
+or 
+
+$$\mathbf{y} = \mathbf{X}\boldsymbol\beta  + \boldsymbol\epsilon,$$ 
+
+where $E[\boldsymbol\epsilon] = \mathbf{0}$.
+
+Using matrix notation, we can formulate the least squares problem as follows: 
+
+$$\text{argmin}_{\boldsymbol\beta} (\mathbf{y} - \mathbf{X}\boldsymbol\beta)^\top(\mathbf{y} - \mathbf{X}\boldsymbol\beta),$$
+
+where the notation $\text{argmin}_{\boldsymbol\beta} f(\boldsymbol\beta)$ means that we want to find the value of $\boldsymbol\beta$ that minimizes the function $f(\boldsymbol\beta)$.
+
+
+## Matrix Calculus
+
+Find the value of $\boldsymbol\beta$ that minimizes the sum of squared residuals $(\mathbf{y} - \mathbf{X}\boldsymbol\beta)^\top(\mathbf{y} - \mathbf{X}\boldsymbol\beta)$.
+
+*Hint: review these results about [derivatives of vectors](http://www.gatsby.ucl.ac.uk/teaching/courses/sntn/sntn-2017/resources/Matrix_derivatives_cribsheet.pdf) and [matrices](https://drive.google.com/file/d/1SnpeNAP75ufBIgvfmb68PxLLP9mc-wyg/view?usp=sharing) if needed.*
+
+First, take the derivative with respect to $\boldsymbol\beta$: 
+
+$$
+\begin{aligned}
+\frac{\partial}{\partial \boldsymbol\beta} (\mathbf{y} - \mathbf{X}\boldsymbol\beta)^\top(\mathbf{y} - \mathbf{X}\boldsymbol\beta) 
+& = \dots
+\end{aligned}
+$$
+
+
+Then, set this equal to zero and solve for $\boldsymbol\beta$:
+
+$$
+\begin{aligned}
+-2\mathbf{X}^\top\mathbf{y} + 2 \mathbf{X}^\top \mathbf{X} \boldsymbol\beta &\stackrel{set}{=} 0 \\
+\dots
+\end{aligned}
+$$
+
+Check your answer: you should end up with the solution $\hat{\boldsymbol\beta} = (\mathbf{X}^\top \mathbf{X})^{-1}\mathbf{X}^\top\mathbf{y}$.
+
+
+
+## The p > n problem, revisited
+
+Now that we've done all that math, we can finally come back to our p > n problem. 
+
+We saw above that the least squares estimator for the coefficients of a multiple linear regression model can be written as $$\hat{\boldsymbol\beta} = (\mathbf{X}^\top \mathbf{X})^{-1}\mathbf{X}^\top\mathbf{y}.$$
+
+Let's calculate $\mathbf{X}^\top \mathbf{X}$ for our toy example, above:
+
+```{r}
+xtx <- t(snps) %*% snps
+```
+
+
+What is the determinant of $\mathbf{X}^\top \mathbf{X}$?
+
+```{r calculate-determinant}
+# your code here
+```
+
+
+What does this tell us about $(\mathbf{X}^\top \mathbf{X})^{-1}$?
+
