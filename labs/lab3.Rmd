@@ -1,0 +1,280 @@
+---
+title: 'Lab 3: the multiple testing problem'
+subtitle: "STAT 494: Statistical Genetics"
+author: "Prof. Kelsey Grinde"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Load Packages
+
+We'll be using a new package today, `NatParksPalettes`, which provides some fun color palettes we can use for plotting that are inspired by pictures of US and Canadian National Parks. Read more about this package [here](https://github.com/kevinsblake/natparkspalettes). Make sure you **install this package first** before loading the packages below. 
+
+```{r load-packages}
+library(broom)
+library(snpStats)
+library(NatParksPalettes)
+```
+
+
+
+# Independent Tests
+
+To begin, let's explore the problem of conducting multiple *independent* hypothesis tests. In the context of genetic data, this might look like testing SNPs that are far away from each other (e.g., on different chromosomes) and are thus inherited independently.
+
+## Data setup
+
+To start, let's generate a small dataset with 165 rows (i.e., 165 people) and 83 columns (i.e., 83 SNPs). (The reasons for these numbers will become apparent later.) For now, we'll assume that all of these SNPs have the same minor allele frequency of 10% and we'll generate each of these SNPs independently from the others.
+
+```{r simulate-genotypes}
+# function to simulate one genetic variant
+sim_one_variant <- function(n_ppl, MAF){
+  snp <- rbinom(n = n_ppl, size = 2, p = MAF)
+  return(snp)
+}
+
+# replicate 83 times to create 83 independent SNPs
+set.seed(494)
+snps <- replicate(83, sim_one_variant(n_ppl = 165, MAF = 0.1))
+```
+
+Take a minute to explore the `snps` object and confirm it looks like what you were expecting: calculate the dimensions, type `View(snps)` in the Console to open the data in a new window, calculate the correlation between each pair of SNPs, etc. Summarize your takeaways here:
+
+```{r explore-genotypes}
+# your code here
+```
+
+> YOUR ANSWER HERE
+
+
+
+## What's wrong with 0.05?
+
+Suppose we want to conduct a "genome-wide" association study, using marginal regression to separately test the association between each of these 83 SNPs and a trait. Before we work on determining which significance threshold we *should* use in this setting, let's explore what happens when we use a p-value threshold of 0.05.
+
+Consider the scenario where the null hypothesis is universally true: none of the 83 SNPs are associated with our trait. If we use a p-value threshold of 0.05, how often will we incorrectly state that at least one of these SNPs is associated with the trait (even though we know, in reality, that's not true)? To investigate this question, let's start by simulating a quantitative trait that does not depend on any of the SNPs:
+
+```{r simulate-trait}
+set.seed(1) # set random number seed for reproduciblity
+y <- rnorm(n = 165, mean = 0, sd = 1) # simulate Y from a standard normal distribution
+```
+
+Next, implement GWAS to investigate the association between each SNP and the simulated null trait:
+
+```{r implement-GWAS}
+# set up empty vector to store p-values
+pvals <- c()
+
+# loop through each of the 83 SNPs
+for(i in 1:83){
+  mod <- lm(y ~ snps[,i]) # fit model looking at SNP i
+  pvals[i] <- tidy(mod)$p.value[2] # record p-value
+}
+```
+
+Look at the p-values that we got. Are any of them below 0.05? How many of them "should" be below 0.05?
+
+```{r check-pvals}
+# your code here
+```
+
+> YOUR ANSWER HERE
+
+
+Maybe we just got "unlucky" in our first simulation replicate. Let's repeat this process many times and see how often we end up with at least one p-value being below 0.05. Let's wrap our code, above, into a function called `do_one_sim` to help us do this.
+
+```{r helper-simulation-function}
+do_one_sim <- function(){
+  # simulate null trait
+  y <- rnorm(n = 165, mean = 0, sd = 1)
+  # implement GWAS
+  pvals <- c()
+  for(i in 1:83){
+    mod <- lm(y ~ snps[,i])
+    pvals[i] <- tidy(mod)$p.value[2]
+  }
+  # check if any pvals are < 0.05
+  any(pvals < 0.05)
+}
+```
+
+
+Now, we can use the `replicate` function to run `do_one_sim` 500 times:
+
+```{r run-simulation, cache = TRUE}
+# repeat simulation 500 times
+set.seed(494)
+simres <- replicate(500, do_one_sim())
+```
+
+
+Across how many of these simulations did we end up with at least one p-value below the 0.05 threshold? In other words, what was our empirical *family-wise error rate*? 
+
+```{r check-simulation-results}
+# your code here
+```
+
+> YOUR ANSWER HERE
+
+
+How does this compare to the mathematical result that we derived together in class? 
+
+> YOUR ANSWER HERE
+
+
+What do these results suggest about the appropriateness of using a p-value threshold of 0.05 in this setting?
+
+> YOUR ANSWER HERE
+
+
+
+## Simulation-based approach
+
+Hopefully it's clear from the last section that a p-value threshold of 0.05 is *not* appropriate in this setting. What should we use instead? One way to determine an appropriate threshold is to use a simulation-based approach like the one they used in [Pulit et al., 2016](https://onlinelibrary.wiley.com/doi/10.1002/gepi.22032). If we want to control the family-wise error rate at 5%, then the steps of this process look like this:
+
+1. Simulate a null trait (i.e., a trait that is not associated with any of the SNPs)
+2. Run GWAS to test the association between this simulated null trait and each of the SNPs in our dataset. Record the smallest p-value from this GWAS.
+3. Repeat steps 1 and 2 many (e.g., 100, 500, 1000) times.
+4. Look at the p-values you saved from those simulation replicates. Sort them from smallest to largest and find the lowest 5th percentile (i.e., the point at which 5% of the p-values are smaller than that number). This is your significance threshold!
+
+
+Let's implement this simulation-based multiple testing correction approach now. You can use the code from the previous section as a starting point, but instead of checking if any SNPs are smaller than 0.05 for each simulation, we'll record the smallest one.
+
+```{r implement-sim-approach}
+# write a function to do one simulation replicate (should look a lot like our last simulation)
+
+# then repeat many times
+
+# then use the quantile function to find the lower 5th percentile
+```
+
+Based on this approach, what significance threshold should we use?
+
+> YOUR ANSWER HERE
+
+
+How does this compare to the Bonferroni correction? 
+
+> YOUR ANSWER HERE
+
+
+
+
+# Correlated Tests
+
+In the previous example, we assumed that our 83 SNPs were independent of one another, but this is not a realistic assumption in the case of a typical GWAS. In reality, nearby SNPs are correlated with one another due to the processes involved in the inheritance of DNA. How does this impact the multiple testing problem?
+
+
+## HapMap data
+
+Let's return to the HapMap data we explored in Lab 2. To make the size of the dataset more manageable for us today, let's just look at the first 100 SNPs:
+
+```{r read-hapmap-data}
+# update these file paths according to the way you've stored the data on your computer
+fam <- '/Users/kgrinde/Documents/Teaching/StatGen/data/MareesEtAl_Tutorial/1_QC_GWAS/HapMap_3_r3_1.fam'
+bim <- '/Users/kgrinde/Documents/Teaching/StatGen/data/MareesEtAl_Tutorial/1_QC_GWAS/HapMap_3_r3_1.bim'
+bed <- '/Users/kgrinde/Documents/Teaching/StatGen/data/MareesEtAl_Tutorial/1_QC_GWAS/HapMap_3_r3_1.bed'
+
+# then read in the files, using select.snps to select only the first 100
+hapmap <- read.plink(bed, bim, fam, select.snps = 1:100)
+
+# confirm we have 100 SNPs only
+hapmap$genotypes
+```
+
+
+## Linkage disequilibrium
+
+There is a special term that we use in genetics to talk about the correlation between SNPs: *linkage disequilibrium*, or *LD*. The `snpStats` package has a function called `ld` that will calculate LD for us:
+
+```{r calculate-hapmap-ld}
+# calculate LD
+hapmap.ld <- ld(hapmap$genotypes, depth = 99, stats = "R.squared", symmetric = TRUE)
+```
+
+Let's investigate and then plot this LD matrix. What do you notice?
+
+```{r plot-hapmap-ld}
+# look at the first 5-by-5 elements:
+hapmap.ld[1:5, 1:5]
+
+# plot LD (grey scale)
+image(hapmap.ld)
+
+# plot LD (fun color palette)
+color.pal <- natparks.pals("Acadia", 10)
+image(hapmap.ld, lwd = 0, cuts = 9, col.regions = color.pal, colorkey = TRUE)
+```
+
+> YOUR ANSWER HERE
+
+
+
+## Simulation-based approach
+
+As you hopefully noticed in the last section, nearby SNPs are often highly correlated with one another. This means that our hypothesis tests at nearby SNPs will also be highly correlated. How does this impact our choice of significance threshold? Let's try implementing the simulation-based multiple testing approach on this dataset to find out.
+
+First, let's convert our genotype data into a matrix of 0's, 1's, and 2's instead of the `snpStats` format it's currently in.
+
+```{r convert-genotype-data}
+hapmap.geno <- as(hapmap$genotypes, "numeric")
+```
+
+Let's also remove the monomorphic SNPs (the SNPs where everyone has the same genotype) since we saw in Lab 2 that linear regression doesn't yield any useful information at these SNPs.
+
+```{r remove-monomorphic}
+# check the dimensions before filtering
+dim(hapmap.geno)
+
+# calculate MAF
+maf <- col.summary(hapmap$genotypes)$MAF
+
+# find monomorphic SNPs
+monomorphic <- which(maf == 0) 
+
+# filter genotype matrix to remove monomorphic SNPs
+hapmap.geno <- hapmap.geno[,-monomorphic]
+
+# check the dimensions after filtering
+dim(hapmap.geno)
+```
+
+How many SNPs remain after filtering?
+
+> YOUR ANSWER HERE
+
+
+Now, modify your code from above to run the simulation-based multiple testing correction approach on the HapMap data. Remember to update the number of individuals and the number of SNPs accordingly.
+
+```{r get-significance-threshold}
+# write a function to do one simulation replicate
+
+# then repeat many times
+
+# then use the quantile function to find the lower 5th percentile
+```
+
+
+What threshold did you get? 
+
+> YOUR ANSWER HERE
+
+
+What significance threshold do we get if we use Bonferroni?
+
+> YOUR ANSWER HERE
+
+
+How do the two thresholds compare? Which is higher and which is lower? Why do you think this is? 
+
+> YOUR ANSWER HERE
+
+
