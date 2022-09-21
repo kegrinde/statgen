@@ -473,6 +473,39 @@ all.results %>%
 ```
 
 
+```{r manh-change-colors, cache = T}
+# try a different color palette
+library(NatParksPalettes)
+all.results %>%
+  mutate(minuslogp = -log10(P.Value),
+         chr = as.factor(chromosome)) %>%
+  ggplot(aes(x = chr, y = minuslogp, group = interaction(chr, position), color = chr)) + 
+  geom_point(position = position_dodge(0.8)) + 
+  labs(x = 'chromosome', y = expression(paste('-log'[10],'(p-value)'))) + 
+  scale_color_manual(values=natparks.pals("Olympic", 25)) + 
+  theme(legend.position="none")
+```
+
+```{r manh-change-colors-again, cache = T}
+# color palette to match the manh plot in the slides
+## inspired by https://github.com/UW-GAC/analysis_pipeline
+library(RColorBrewer)
+chr <- levels(as.factor(all.results$chromosome))
+cmap <- setNames(rep_len(brewer.pal(8, "Dark2"), length(chr)), chr)
+
+# make plot
+all.results %>%
+  mutate(minuslogp = -log10(P.Value),
+         chr = as.factor(chromosome)) %>%
+  ggplot(aes(x = chr, y = minuslogp, group = interaction(chr, position), color = chr)) + 
+  geom_point(position = position_dodge(0.8)) + 
+  labs(x = 'chromosome', y = expression(paste('-log'[10],'(p-value)'))) + 
+  scale_color_manual(values=cmap, breaks=names(cmap)) +
+  theme(legend.position="none")
+```
+
+
+
 ## Speed up the computation
 
 The approach we've taken in this lab to implement marginal regression works, but it's not particularly efficient. Can you think of any ways that we could speed this up? Brainstorm some ideas with your group.
