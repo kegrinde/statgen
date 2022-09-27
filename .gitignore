@@ -36,3 +36,7 @@ labs/lab3_cache/html/run-simulation_0049cde201de34b88c5431ed26603f62.rdx
 labs/lab3_cache/html/unnamed-chunk-4_7641d9485f07d8e8d77e3aa088b30aaf.RData
 labs/lab3_cache/html/unnamed-chunk-4_7641d9485f07d8e8d77e3aa088b30aaf.rdb
 labs/lab3_cache/html/unnamed-chunk-4_7641d9485f07d8e8d77e3aa088b30aaf.rdx
+labs/lab3_solutions_cache/html/__packages
+*.RData
+*.rdb
+*.rdx
