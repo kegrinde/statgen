@@ -47,8 +47,34 @@ A classic PCA example:
 ```
 
 # Paper 4
-TBD
+Ancestry inference in the United States (data from 23andMe):
+
+```
+@article{bryc2015genetic,
+  title={The genetic ancestry of african americans, latinos, and european Americans across the United States},
+  author={Bryc, Katarzyna and Durand, Eric Y and Macpherson, J Michael and Reich, David and Mountain, Joanna L},
+  journal={The American Journal of Human Genetics},
+  volume={96},
+  number={1},
+  pages={37--53},
+  year={2015},
+  publisher={Elsevier}
+}
+```
 
 
 # Paper 5
-TBD
+Review of methods for inferring and controlling for population structure (including relatedness):
+
+```
+@article{price2010new,
+  title={New approaches to population stratification in genome-wide association studies},
+  author={Price, Alkes L and Zaitlen, Noah A and Reich, David and Patterson, Nick},
+  journal={Nature reviews genetics},
+  volume={11},
+  number={7},
+  pages={459--463},
+  year={2010},
+  publisher={Nature Publishing Group}
+}
+```
