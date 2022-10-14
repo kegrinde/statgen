@@ -1,0 +1,206 @@
+---
+title: 'Lab 4: principal component analysis'
+subtitle: "STAT 494: Statistical Genetics"
+author: "Prof. Kelsey Grinde"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r load-packages}
+library(readr)
+library(ggplot2)
+library(dplyr)
+# add any others that you need here
+```
+
+
+# Read Data
+
+Download the toy data (`pca_toy_data.csv`) from Moodle and read it into R:
+
+```{r read-data}
+
+```
+
+
+# Explore Data
+
+Explore the toy dataset, with the goal of answering each of the questions below.
+
+How many people are in this dataset? How many SNPs?
+
+```{r}
+# your code here
+```
+
+> YOUR ANSWER HERE
+
+
+How many populations are represented? How many people belong to each population? 
+
+```{r}
+# your code here
+```
+
+> YOUR ANSWER HERE
+
+
+Are there any SNPs that seem to be more common in one population than the other? By how much do the allele frequencies in the two populations differ for each SNP? 
+
+> YOUR ANSWER HERE
+
+
+# Run PCA
+
+There is more than one way to run PCA in R. We'll use similar code to what you may have seen in *STAT 253: Statistical Machine Learning*. If PCA is new to you, I recommend taking some time to read through [these notes](https://bcheggeseth.github.io/253_fall_2021/principal-components-analysis.html) after class.
+
+
+First, we'll need to set up the data. Create a data frame called `geno` that contains only the genotype information for each of the SNPs (i.e., remove any other columns). 
+
+```{r pca-setup}
+# your code here
+```
+
+
+Then, run the code chunk below to perform PCA using the `prcomp` function.
+
+```{r run-pca}
+pca_out <- prcomp(geno, center = TRUE, scale = TRUE)
+```
+
+
+Open the help page for `prcomp` and read through the description of what it returns. (Hint: see the "Value" section of the help page.) Which component of the output contains the loadings? Which part contains the scores?
+
+> YOUR ANSWER HERE
+
+
+Based on what you learned from the help page, extract the loadings and scores and save them as new objects called `pca_loadings` and `pca_scores`, respectively. (Hint: use `$` to extract a particular component from a list, e.g., `list$name_of_component`.)
+
+```{r extract-scores-and-loadings}
+# your code here
+```
+
+
+# Plot Results
+
+## Scores
+
+Create a scatterplot comparing the scores for the first two PCs, with points colored by which population the individual belongs to. 
+```{r plot-scores}
+# your code here
+```
+
+What do you learn from this plot?
+
+> YOUR ANSWER HERE
+
+
+
+Another way to visualize the PC scores is to make what's known as a *parallel coordinates plot*. This plot will allow us to look at all of our PCs at once. As above, we'll color each of the individuals according to which population they belong to. I'll give you most of the code for this one:
+
+```{r parallel-coordinates}
+# parallel coordinates plot
+pca_scores %>%
+  as.data.frame() %>%
+  mutate(population = as.factor(___$population)) %>% # fill in the blanks with the name of your dataset
+  ggparcoord(columns = 1:___, groupColumn = 'population', alpha = 0.2) + # fill in the blanks with the number of PCs
+  theme_minimal() + 
+  scale_color_brewer(palette = 'Dark2')
+```
+
+What do you learn from the parallel coordinates plot? 
+
+> YOUR ANSWER HERE
+
+
+## Loadings
+
+Next, let's investigate which SNPs have the largest contributions to the first PC by looking at the loadings. Run the code chunk below to plot the loadings for PC1.
+
+```{r plot-PC1-loadings}
+pca_loadings %>%
+  as.data.frame() %>%
+  mutate(index = seq_len(nrow(pca_loadings))) %>%
+  ggplot(aes(x = index, y = PC1)) + 
+  geom_point() + 
+  labs(xlab = 'SNP Number', ylab = 'Loadings for PC1') + 
+  theme_minimal()
+```
+
+Which SNPs have the highest loadings for PC1? Which SNPs have the lowest loadings? Why do you think this is?
+
+> YOUR ANSWER HERE
+
+
+Now, repeat this process for the second PC, third, and fourth PCs. What do you notice?
+
+```{r plot-other-loadings}
+# your code here
+```
+
+> YOUR ANSWER HERE
+
+
+## Variance Explained
+
+As we've discussed in class, the principal components are ordered in terms of the amount of variance they explain in the original data. To see exactly what proportion of total variance each PC explains, we can create what's known as a scree plot. The code chunk below calculates the proportion of variance explained and then plots this for each PC.
+
+```{r}
+# extract variance of each PC
+pca_var <- (pca_out$sdev)^2
+
+# calculate proportion of variance explained
+total_var <- sum(pca_var)
+pve <- pca_var/total_var
+
+# scree plot
+pve %>%
+  as.data.frame() %>%
+  mutate(index = seq_len(length(pca_var))) %>%
+  ggplot(aes(x = index, y = pve)) + 
+  geom_point() + 
+  geom_line() + 
+  labs(xlab = 'SNP Number', ylab = 'Percent of Variance Explained') + 
+  theme_minimal()
+```
+
+What do you learn from this plot? 
+
+> YOUR ANSWER HERE
+
+
+# GWAS
+
+Now, let's investigate the impact of adjusting for PCs in GWAS models.
+
+First, conduct a genome-wide association study using marginal regression models that do *not* make any adjusting for population structure. In other words, use models of the form `trait ~ snp` with no other covariates. 
+
+```{r unadjusted-gwas}
+# your code here
+```
+
+What do you notice? Which SNP(s) have the smallest p-value?
+
+> YOUR ANSWER HERE
+
+
+Next, conduct a genome-wide association study using models that adjust for the first PC (`trait ~ snp + PC1`). How do the results compare to the unadjusted analysis?
+
+```{r adjusted-gwas}
+# your code here
+```
+
+> YOUR ANSWER HERE
+
+
+The trait that we are using for these GWASs is simulated, so we know the "answers" here. In particular, I created this trait such that it depends on the genotype at SNP3 as well as the population that the person belongs to. Now that you know the "truth", re-evaluate your results above. Which model is better? Why?
+
+> YOUR ANSWER HERE 
+
