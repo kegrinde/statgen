@@ -347,6 +347,9 @@ chr1.results <- chr1.results %>%
 
 # look at results
 head(chr1.results)
+
+chr1.results %>%
+  filter(P.Value < 5e-06)
 ```
 
 
@@ -445,6 +448,9 @@ all.results <- all.results %>%
 
 # look at results
 head(all.results)
+
+all.results %>%
+  filter(P.Value < 5e-06)
 ```
 
 

@@ -625,8 +625,8 @@ the genotype at this SNP plus some random noise:</p>
 <pre class="r"><code>n &lt;- nrow(X)
 y &lt;- X[,&#39;rs2476601&#39;] + rnorm(n, 0, 1)
 head(y)</code></pre>
-<pre><code>##    NA06989    NA11891    NA11843    NA12341    NA12739    NA10850 
-## 1.88729619 2.38547273 0.07222304 1.71719986 1.87578374 2.22384939</code></pre>
+<pre><code>##   NA06989   NA11891   NA11843   NA12341   NA12739   NA10850 
+## 0.3372138 1.9435212 1.7440806 0.8365647 1.0994162 2.2531212</code></pre>
 <p>Since this is a simulation, we know by design that our trait
 <code>y</code> depends on SNP rs2476601 and nothing else. We can use
 this information to check how well our methods are working. We’ll refer
@@ -654,32 +654,32 @@ tidy(mod1)</code></pre>
 <pre><code>## # A tibble: 2 × 5
 ##   term        estimate std.error statistic   p.value
 ##   &lt;chr&gt;          &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;
-## 1 (Intercept)     1.91    0.0907      21.1  2.56e-48
+## 1 (Intercept)     1.68    0.0847      19.8  3.82e-45
 ## 2 X[, 1]         NA      NA           NA   NA</code></pre>
 <pre class="r"><code>tidy(mod2)</code></pre>
 <pre><code>## # A tibble: 2 × 5
 ##   term        estimate std.error statistic p.value
 ##   &lt;chr&gt;          &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;   &lt;dbl&gt;
-## 1 (Intercept)    2.97      1.15      2.58   0.0108
-## 2 X[, 2]        -0.531     0.577    -0.920  0.359</code></pre>
+## 1 (Intercept)    0.410     1.09      0.377   0.706
+## 2 X[, 2]         0.639     0.545     1.17    0.243</code></pre>
 <pre class="r"><code>tidy(mod3)</code></pre>
 <pre><code>## # A tibble: 2 × 5
 ##   term        estimate std.error statistic   p.value
 ##   &lt;chr&gt;          &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;
-## 1 (Intercept)     1.91    0.0907      21.1  2.56e-48
+## 1 (Intercept)     1.68    0.0847      19.8  3.82e-45
 ## 2 X[, 3]         NA      NA           NA   NA</code></pre>
 <pre class="r"><code>tidy(mod4)</code></pre>
 <pre><code>## # A tibble: 2 × 5
-##   term        estimate std.error statistic      p.value
-##   &lt;chr&gt;          &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;        &lt;dbl&gt;
-## 1 (Intercept)   1.85       0.317     5.85  0.0000000260
-## 2 X[, 4]        0.0347     0.180     0.192 0.848</code></pre>
-<pre class="r"><code>tidy(mod5)</code></pre>
-<pre><code>## # A tibble: 2 × 5
 ##   term        estimate std.error statistic     p.value
 ##   &lt;chr&gt;          &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;       &lt;dbl&gt;
-## 1 (Intercept)   1.81       0.341     5.32  0.000000338
-## 2 X[, 5]        0.0566     0.189     0.299 0.765</code></pre>
+## 1 (Intercept)   1.63       0.296     5.52  0.000000133
+## 2 X[, 4]        0.0269     0.168     0.160 0.873</code></pre>
+<pre class="r"><code>tidy(mod5)</code></pre>
+<pre><code>## # A tibble: 2 × 5
+##   term        estimate std.error statistic   p.value
+##   &lt;chr&gt;          &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;
+## 1 (Intercept)    1.33      0.317      4.19 0.0000458
+## 2 X[, 5]         0.201     0.176      1.14 0.255</code></pre>
 <p>Do you notice anything weird about the 1st and 3rd SNPs? What do you
 think is going on here?</p>
 <blockquote>
@@ -814,6 +814,16 @@ head(chr1.results)</code></pre>
 ## rs1048488  -0.18371838 0.1796481     -1.0226569 0.3080138
 ## rs12562034 -0.23309283 0.1987298     -1.1729133 0.2425630
 ## rs12124819 -0.08317233 0.1365740     -0.6089911 0.5433940</code></pre>
+<pre class="r"><code>chr1.results %&gt;%
+  filter(P.Value &lt; 5e-06)</code></pre>
+<pre><code>##           chromosome  snp.name cM  position allele.1 allele.2       MAF
+## rs6679677          1 rs6679677 NA 114105331        A        C 0.1151515
+## rs2476601          1 rs2476601 NA 114179091        A        G 0.1196319
+## rs2078095          1 rs2078095 NA 238474969        G        A 0.2696970
+##            Estimate Std.Error Test.Statistic      P.Value
+## rs6679677 1.0325860 0.1902786       5.426705 2.074718e-07
+## rs2476601 1.0705565 0.1870733       5.722658 4.993093e-08
+## rs2078095 0.6580902 0.1366829       4.814724 3.374411e-06</code></pre>
 <p>Now we’re ready to plot our results! We’d like to get a visual of
 which SNPs have small p-values (suggesting a possible association
 between the SNP and the trait). To start, create a scatterplot of the
@@ -1066,6 +1076,50 @@ head(all.results)</code></pre>
 ## rs1048488  -0.17374430 0.1685997    -1.03051383 0.3043241
 ## rs12562034  0.06380211 0.1877918     0.33974914 0.7344883
 ## rs12124819 -0.10185473 0.1268128    -0.80318965 0.4230567</code></pre>
+<pre class="r"><code>all.results %&gt;%
+  filter(P.Value &lt; 5e-06)</code></pre>
+<pre><code>##            chromosome   snp.name cM  position allele.1 allele.2        MAF
+## rs6679677           1  rs6679677 NA 114105331        A        C 0.11515152
+## rs2476601           1  rs2476601 NA 114179091        A        G 0.11963190
+## rs2358994           1  rs2358994 NA 114230984        A        G 0.18181818
+## rs12022378          1 rs12022378 NA 114249912        T        C 0.17878788
+## rs3761936           1  rs3761936 NA 114251185        C        T 0.17878788
+## rs4685941           3  rs4685941 NA   5487860        C        A 0.05151515
+## rs4684490           3  rs4684490 NA   5488866        C        T 0.05151515
+## rs727143            4   rs727143 NA  88012570        C        T 0.19090909
+## rs10015508          4 rs10015508 NA  88013326        C        T 0.19090909
+## rs6811350           4  rs6811350 NA  88018240        G        A 0.19090909
+## rs13120839          4 rs13120839 NA  88027661        C        A 0.19090909
+## rs431836            4   rs431836 NA  88192729        A        G 0.19393939
+## rs2548554           5  rs2548554 NA  10300010        T        C 0.18181818
+## rs2548553           5  rs2548553 NA  10300965        T        G 0.18181818
+## rs2548552           5  rs2548552 NA  10301175        A        T 0.18181818
+## rs2578619           5  rs2578619 NA  10301797        C        T 0.18181818
+## rs2548551           5  rs2548551 NA  10302790        G        T 0.18181818
+## rs2548546           5  rs2548546 NA  10303430        G        A 0.18181818
+## rs9655107           7  rs9655107 NA  13691968        T        C 0.38484848
+## rs5755509          22  rs5755509 NA  33740971        C        G 0.09696970
+##              Estimate Std.Error Test.Statistic      P.Value
+## rs6679677   0.9485213 0.1798854       5.272919 4.267597e-07
+## rs2476601   0.9566596 0.1778490       5.379056 2.597897e-07
+## rs2358994   0.7020905 0.1435728       4.890134 2.421826e-06
+## rs12022378  0.7163448 0.1470222       4.872357 2.619623e-06
+## rs3761936   0.7163448 0.1470222       4.872357 2.619623e-06
+## rs4685941   1.1906097 0.2445234       4.869104 2.657476e-06
+## rs4684490   1.1906097 0.2445234       4.869104 2.657476e-06
+## rs727143    0.6593179 0.1350774       4.881038 2.521155e-06
+## rs10015508  0.6593179 0.1350774       4.881038 2.521155e-06
+## rs6811350   0.6593179 0.1350774       4.881038 2.521155e-06
+## rs13120839  0.6593179 0.1350774       4.881038 2.521155e-06
+## rs431836    0.6529077 0.1349517       4.838085 3.046018e-06
+## rs2548554   0.7334009 0.1546330       4.742850 4.614056e-06
+## rs2548553   0.7334009 0.1546330       4.742850 4.614056e-06
+## rs2548552   0.7334009 0.1546330       4.742850 4.614056e-06
+## rs2578619   0.7334009 0.1546330       4.742850 4.614056e-06
+## rs2548551   0.7334009 0.1546330       4.742850 4.614056e-06
+## rs2548546   0.7334009 0.1546330       4.742850 4.614056e-06
+## rs9655107  -0.6438928 0.1220164      -5.277099 4.185496e-07
+## rs5755509   0.9027495 0.1885225       4.788552 3.783032e-06</code></pre>
 <pre class="r"><code>all.results %&gt;%
   mutate(minuslogp = -log10(P.Value),
          chr = as.factor(chromosome)) %&gt;%
