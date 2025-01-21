@@ -40,3 +40,4 @@ labs/lab3_solutions_cache/html/__packages
 *.RData
 *.rdb
 *.rdx
+.Rproj.user
